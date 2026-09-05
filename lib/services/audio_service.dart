@@ -29,9 +29,20 @@ class AudioService {
   Future<void> _initializeAudioSession() async {
     try {
       final session = await AudioSession.instance;
-      await session.configure(const AudioSessionConfiguration.music());
+      await session.configure(const AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playback,
+        avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.duckOthers,
+        avAudioSessionMode: AVAudioSessionMode.default_,
+        avAudioSessionRouteSharingPolicy: AVAudioSessionRouteSharingPolicy.defaultPolicy,
+        androidAudioAttributes: AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.music,
+          usage: AndroidAudioUsage.media,
+        ),
+        androidWillPauseWhenDucked: true,
+      ));
+      print('✓ AudioSession configured successfully for lock screen');
     } catch (e) {
-      // Silently fail if audio session configuration fails
+      print('✗ AudioSession configuration error: $e');
     }
   }
 
@@ -66,23 +77,27 @@ class AudioService {
   Future<void> _setupLockScreen() async {
     if (_lockScreenSetup) return;
     try {
+      print('→ Setting up lock screen command handlers...');
       await _lockScreenChannel.invokeMethod('setCommandHandlers');
       _lockScreenSetup = true;
+      print('✓ Lock screen handlers setup complete');
     } catch (e) {
-      // Silently fail if lock screen setup fails
+      print('✗ Lock screen setup error: $e');
     }
   }
 
   Future<void> _updateLockScreenNowPlaying(Track track) async {
     try {
       final duration = track.duration.inSeconds.toDouble();
+      print('→ Updating lock screen: ${track.title} (${duration}s)');
       await _lockScreenChannel.invokeMethod('updateNowPlaying', {
         'title': track.title,
         'artist': 'Pitty',
         'duration': duration,
       });
+      print('✓ Lock screen updated with now playing info');
     } catch (e) {
-      // Silently fail if lock screen update fails
+      print('✗ Lock screen update error: $e');
     }
   }
 
