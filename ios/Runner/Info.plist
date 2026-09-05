@@ -70,5 +70,13 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<key>MPMediaLibraryUsageDescription</key>
+	<string>Pitty Player needs access to your music library</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Pitty Player uses local network</string>
+	<key>NSBonjourServiceTypes</key>
+	<array>
+		<string>_http._tcp</string>
+	</array>
 </dict>
 </plist>
