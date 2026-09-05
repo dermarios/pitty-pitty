@@ -6,7 +6,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import '../models/track.dart';
 
-const platform = MethodChannel('com.forven.pittyplayer/media');
+const platform = MethodChannel('com.forven.pittyplayer/nowplaying');
 
 class AudioService {
   late AudioPlayer _player;
@@ -123,19 +123,19 @@ class AudioService {
     try {
       _currentTrack = track;
       await _player.setAsset(track.path);
-      _updateNowPlaying(track);
+
+      // Update lock screen info
+      unawaited(platform.invokeMethod('updateNowPlaying', {
+        'title': track.title,
+        'artist': 'Pitty',
+        'duration': (track.duration?.inMilliseconds.toDouble() ?? 0) / 1000,
+      }));
+
       await _player.play();
       _setupRepeatListener();
     } catch (e) {
       rethrow;
     }
-  }
-
-  void _updateNowPlaying(Track track) {
-    platform.invokeMethod('updateNowPlaying', {
-      'title': track.title,
-      'artist': 'Pitty',
-    }).ignore();
   }
 
   void _setupRepeatListener() {
