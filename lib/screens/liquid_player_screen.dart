@@ -468,10 +468,15 @@ class _LiquidPlayerScreenState extends State<LiquidPlayerScreen>
       stream: _player.playingStream,
       builder: (context, snap) {
         final playing = snap.data ?? false;
+        final shuffle = widget.audioService.shuffleMode;
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(Icons.shuffle_rounded, color: Colors.white.withOpacity(0.42), size: 20),
+            GestureDetector(
+              onTap: () => setState(() => widget.audioService.toggleShuffle()),
+              child: Icon(Icons.shuffle_rounded,
+                  color: Colors.white.withOpacity(shuffle ? 1 : 0.42), size: 20),
+            ),
             IconButton(
               iconSize: 30,
               color: Colors.white,

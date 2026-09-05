@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
@@ -11,8 +12,10 @@ class AudioService {
   Track? _currentTrack;
   bool _tracksLoaded = false;
   int _repeatMode = 0; // 0: no repeat, 1: repeat one, 2: repeat all
+  bool _shuffleMode = false;
   StreamSubscription<PlayerState>? _repeatListener;
   Set<String> _likedTracks = {}; // Store track paths of liked tracks
+  final _random = math.Random();
 
   AudioService() {
     _player = AudioPlayer();
@@ -154,9 +157,14 @@ class AudioService {
 
   Future<void> next() async {
     if (_currentTrack == null) return;
-    final currentIndex = _tracks.indexOf(_currentTrack!);
-    if (currentIndex != -1 && currentIndex < _tracks.length - 1) {
-      await play(_tracks[currentIndex + 1]);
+    if (_shuffleMode && _tracks.isNotEmpty) {
+      final randomIndex = _random.nextInt(_tracks.length);
+      await play(_tracks[randomIndex]);
+    } else {
+      final currentIndex = _tracks.indexOf(_currentTrack!);
+      if (currentIndex != -1 && currentIndex < _tracks.length - 1) {
+        await play(_tracks[currentIndex + 1]);
+      }
     }
   }
 
@@ -172,10 +180,19 @@ class AudioService {
   List<Track> get tracks => _tracks;
   Track? get currentTrack => _currentTrack;
   int get repeatMode => _repeatMode;
+  bool get shuffleMode => _shuffleMode;
 
   void toggleRepeatMode() {
     _repeatMode = (_repeatMode + 1) % 3;
     _setupRepeatListener();
+  }
+
+  void toggleShuffle() {
+    _shuffleMode = !_shuffleMode;
+    if (_shuffleMode && _tracks.isNotEmpty) {
+      final randomIndex = _random.nextInt(_tracks.length);
+      play(_tracks[randomIndex]);
+    }
   }
 
   bool isLiked(Track track) => _likedTracks.contains(track.path);
