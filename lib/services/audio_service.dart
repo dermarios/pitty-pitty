@@ -207,15 +207,12 @@ class AudioService {
       final mediaItem = track.toMediaItem();
       print('→ Playing: ${mediaItem.title}');
       print('  - Artist: ${mediaItem.artist}');
-      print('  - artUri: ${mediaItem.artUri}');
 
-      // Use AudioSource with tag for just_audio_background to work
-      final audioSource = AudioSource.uri(
-        Uri.file(track.path),
+      await _player.setAsset(
+        track.path,
         tag: mediaItem,
       );
 
-      await _player.setAudioSource(audioSource);
       await _player.play();
       print('✓ Audio started playing');
 
