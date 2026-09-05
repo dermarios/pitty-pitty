@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
@@ -8,6 +9,10 @@ class AudioService {
   late AudioPlayer _player;
   List<Track> _tracks = [];
   Track? _currentTrack;
+  bool _tracksLoaded = false;
+  int _repeatMode = 0; // 0: no repeat, 1: repeat one, 2: repeat all
+  StreamSubscription<PlayerState>? _repeatListener;
+  Set<String> _likedTracks = {}; // Store track paths of liked tracks
 
   AudioService() {
     _player = AudioPlayer();
@@ -20,26 +25,89 @@ class AudioService {
   }
 
   Future<void> loadTracks() async {
-    final manifestJson = await rootBundle.loadString('AssetManifest.json');
-    final Map<String, dynamic> manifestMap = jsonDecode(manifestJson);
-
+    if (_tracksLoaded) return;
     _tracks = [];
-    if (manifestMap.containsKey('assets/musicas')) {
-      final List<dynamic> musicFiles = manifestMap['assets/musicas'];
-      for (var asset in musicFiles) {
-        if (asset.endsWith('.mp3')) {
-          final title = asset
-              .split('/')
-              .last
-              .replaceAll('.mp3', '')
-              .replaceAll('_', ' ')
-              .replaceAll('-', ' ');
-          _tracks.add(Track(path: asset, title: title));
-        }
+    final hardcodedTracks = [
+      Track(
+        path: 'assets/musicas/01 - Teto De Vidro.mp3',
+        title: 'Teto De Vidro',
+        imageAsset: 'assets/Jorge-Daux-@jorgedaux.webp',
+      ),
+      Track(
+        path: 'assets/musicas/02 - Admiravel Chip Novo.mp3',
+        title: 'Admirável Chip Novo',
+        imageAsset: 'assets/Jorge-Daux-@jorgedaux.webp',
+      ),
+      Track(
+        path: 'assets/musicas/03 - Mascara.mp3',
+        title: 'Máscara',
+        imageAsset: 'assets/Jorge-Daux-@jorgedaux.webp',
+      ),
+      Track(
+        path: 'assets/musicas/04 - Equalize.mp3',
+        title: 'Equalize',
+        imageAsset: 'assets/Jorge-Daux-@jorgedaux.webp',
+      ),
+      Track(
+        path: 'assets/musicas/05 - O Lobo.mp3',
+        title: 'O Lobo',
+        imageAsset: 'assets/Jorge-Daux-@jorgedaux.webp',
+      ),
+      Track(
+        path: 'assets/musicas/06 - Emboscada.mp3',
+        title: 'Emboscada',
+        imageAsset: 'assets/Jorge-Daux-@jorgedaux.webp',
+      ),
+      Track(
+        path: 'assets/musicas/07 - Do Mesmo Lado.mp3',
+        title: 'Do Mesmo Lado',
+        imageAsset: 'assets/Jorge-Daux-@jorgedaux.webp',
+      ),
+      Track(
+        path: 'assets/musicas/08 - Temporal.mp3',
+        title: 'Temporal',
+        imageAsset: 'assets/Jorge-Daux-@jorgedaux.webp',
+      ),
+      Track(
+        path: 'assets/musicas/09 - So De Passagem.mp3',
+        title: 'Só De Passagem',
+        imageAsset: 'assets/Jorge-Daux-@jorgedaux.webp',
+      ),
+      Track(
+        path: 'assets/musicas/10 - I Wanna Be.mp3',
+        title: 'I Wanna Be',
+        imageAsset: 'assets/Jorge-Daux-@jorgedaux.webp',
+      ),
+      Track(
+        path: 'assets/musicas/11 - Semana Que Vem.mp3',
+        title: 'Semana Que Vem',
+        imageAsset: 'assets/Jorge-Daux-@jorgedaux.webp',
+      ),
+    ];
+
+    // Carregar duração de cada música
+    for (var track in hardcodedTracks) {
+      try {
+        await _player.setAsset(track.path);
+        final duration = _player.duration ?? Duration.zero;
+        _tracks.add(Track(
+          path: track.path,
+          title: track.title,
+          duration: duration,
+          imageAsset: track.imageAsset,
+        ));
+      } catch (e) {
+        _tracks.add(track);
       }
     }
 
     _tracks.sort((a, b) => a.title.compareTo(b.title));
+
+    if (_tracks.isNotEmpty && _currentTrack == null) {
+      _currentTrack = _tracks.first;
+      await _player.setAsset(_currentTrack!.path);
+    }
+    _tracksLoaded = true;
   }
 
   Future<void> play(Track track) async {
@@ -47,9 +115,29 @@ class AudioService {
       _currentTrack = track;
       await _player.setAsset(track.path);
       await _player.play();
+      _setupRepeatListener();
     } catch (e) {
       rethrow;
     }
+  }
+
+  void _setupRepeatListener() {
+    _repeatListener?.cancel();
+    _repeatListener = _player.playerStateStream.listen((state) async {
+      if (state.processingState == ProcessingState.completed && _currentTrack != null) {
+        if (_repeatMode == 1) {
+          await _player.seek(Duration.zero);
+          await _player.play();
+        } else if (_repeatMode == 2) {
+          final currentIndex = _tracks.indexOf(_currentTrack!);
+          if (currentIndex != -1 && currentIndex < _tracks.length - 1) {
+            await play(_tracks[currentIndex + 1]);
+          } else if (currentIndex == _tracks.length - 1) {
+            await play(_tracks.first);
+          }
+        }
+      }
+    });
   }
 
   Future<void> pause() async {
@@ -83,8 +171,25 @@ class AudioService {
   AudioPlayer get player => _player;
   List<Track> get tracks => _tracks;
   Track? get currentTrack => _currentTrack;
+  int get repeatMode => _repeatMode;
+
+  void toggleRepeatMode() {
+    _repeatMode = (_repeatMode + 1) % 3;
+    _setupRepeatListener();
+  }
+
+  bool isLiked(Track track) => _likedTracks.contains(track.path);
+
+  void toggleLike(Track track) {
+    if (_likedTracks.contains(track.path)) {
+      _likedTracks.remove(track.path);
+    } else {
+      _likedTracks.add(track.path);
+    }
+  }
 
   void dispose() {
+    _repeatListener?.cancel();
     _player.dispose();
   }
 }
