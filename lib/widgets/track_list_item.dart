@@ -20,7 +20,7 @@ class TrackListItem extends StatelessWidget {
       selectedTileColor: Colors.blue.withValues(alpha: 0.3),
       leading: Icon(
         isPlaying ? Icons.music_note : Icons.music_note_outlined,
-        color: isPlaying ? Colors.blue : null,
+        color: isPlaying ? Colors.blue : Colors.white70,
       ),
       title: Text(
         track.title,
@@ -28,7 +28,7 @@ class TrackListItem extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
-          color: isPlaying ? Colors.blue : null,
+          color: isPlaying ? Colors.blue : Colors.white,
         ),
       ),
       onTap: onTap,

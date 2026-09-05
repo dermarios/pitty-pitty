@@ -29,10 +29,16 @@ class ProgressBar extends StatelessWidget {
               children: [
                 SliderTheme(
                   data: SliderThemeData(
-                    trackHeight: 4,
+                    trackHeight: 5,
                     thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 8,
+                      enabledThumbRadius: 10,
+                      elevation: 2,
                     ),
+                    activeTrackColor: Colors.cyan,
+                    inactiveTrackColor: Colors.white.withOpacity(0.2),
+                    thumbColor: Colors.cyan,
+                    overlayColor: Colors.cyan.withOpacity(0.3),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
                   ),
                   child: Slider(
                     value: isDragging ? 0 : position.inMilliseconds.toDouble(),
@@ -51,11 +57,19 @@ class ProgressBar extends StatelessWidget {
                     children: [
                       Text(
                         _formatDuration(position),
-                        style: const TextStyle(fontSize: 12),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       Text(
                         _formatDuration(duration),
-                        style: const TextStyle(fontSize: 12),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.6),
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ],
                   ),

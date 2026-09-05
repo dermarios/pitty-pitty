@@ -27,11 +27,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
+  flutter_launcher_icons: ^0.14.0
   flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
@@ -44,6 +40,10 @@ flutter:
 
   assets:
     - assets/musicas/
+    - assets/Jorge-Daux-@jorgedaux.webp
+    - assets/IMAGEM_NOTICIA_original.jpg
+    - assets/775416812_18620508076026296_1192558196502584496_n.jpg
+    - assets/775245305_18620508094026296_8409613848889249192_n.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -70,3 +70,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  image_path: "assets/jorge-daux-icon.webp"
+  ios: true
+  image_path_ios: "assets/jorge-daux-icon.webp"
+  remove_alpha_ios: true

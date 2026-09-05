@@ -1,0 +1,83 @@
+{
+  "object" : {
+    "artifacts" : [
+
+    ],
+    "dependencies" : [
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "audio_service-0.18.19",
+          "kind" : "fileSystem",
+          "location" : "/Users/mariosilveira/Documents/GitHub/pitty-pitty/ios/Flutter/ephemeral/Packages/.packages/audio_service-0.18.19",
+          "name" : "audio_service"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/mariosilveira/Documents/GitHub/pitty-pitty/ios/Flutter/ephemeral/Packages/.packages/audio_service-0.18.19"
+        },
+        "subpath" : "audio_service-0.18.19"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "audio_session-0.1.25",
+          "kind" : "fileSystem",
+          "location" : "/Users/mariosilveira/Documents/GitHub/pitty-pitty/ios/Flutter/ephemeral/Packages/.packages/audio_session-0.1.25",
+          "name" : "audio_session"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/mariosilveira/Documents/GitHub/pitty-pitty/ios/Flutter/ephemeral/Packages/.packages/audio_session-0.1.25"
+        },
+        "subpath" : "audio_session-0.1.25"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "flutterframework",
+          "kind" : "fileSystem",
+          "location" : "/Users/mariosilveira/Documents/GitHub/pitty-pitty/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework",
+          "name" : "FlutterFramework"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/mariosilveira/Documents/GitHub/pitty-pitty/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework"
+        },
+        "subpath" : "flutterframework"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "just_audio-0.9.44",
+          "kind" : "fileSystem",
+          "location" : "/Users/mariosilveira/Documents/GitHub/pitty-pitty/ios/Flutter/ephemeral/Packages/.packages/just_audio-0.9.44",
+          "name" : "just_audio"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/mariosilveira/Documents/GitHub/pitty-pitty/ios/Flutter/ephemeral/Packages/.packages/just_audio-0.9.44"
+        },
+        "subpath" : "just_audio-0.9.44"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "sqflite_darwin-2.4.3+1",
+          "kind" : "fileSystem",
+          "location" : "/Users/mariosilveira/Documents/GitHub/pitty-pitty/ios/Flutter/ephemeral/Packages/.packages/sqflite_darwin-2.4.3+1",
+          "name" : "sqflite_darwin"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/mariosilveira/Documents/GitHub/pitty-pitty/ios/Flutter/ephemeral/Packages/.packages/sqflite_darwin-2.4.3+1"
+        },
+        "subpath" : "sqflite_darwin-2.4.3+1"
+      }
+    ],
+    "prebuilts" : [
+
+    ]
+  },
+  "version" : 7
+}

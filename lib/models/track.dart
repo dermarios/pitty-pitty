@@ -2,11 +2,13 @@ class Track {
   final String path;
   final String title;
   final Duration duration;
+  final String? imageAsset;
 
   Track({
     required this.path,
     required this.title,
     this.duration = Duration.zero,
+    this.imageAsset,
   });
 
   @override

@@ -6,6 +6,8 @@ import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import '../models/track.dart';
 
+const platform = MethodChannel('com.forven.pittyplayer/media');
+
 class AudioService {
   late AudioPlayer _player;
   List<Track> _tracks = [];
@@ -117,10 +119,22 @@ class AudioService {
     try {
       _currentTrack = track;
       await _player.setAsset(track.path);
+      await _updateNowPlaying(track);
       await _player.play();
       _setupRepeatListener();
     } catch (e) {
       rethrow;
+    }
+  }
+
+  Future<void> _updateNowPlaying(Track track) async {
+    try {
+      await platform.invokeMethod('updateNowPlaying', {
+        'title': track.title,
+        'artist': 'Pitty',
+      });
+    } catch (e) {
+      // Silently fail if platform method is not available
     }
   }
 
