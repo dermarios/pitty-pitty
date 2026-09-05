@@ -201,7 +201,13 @@ class AudioService {
   Future<void> play(Track track) async {
     try {
       _currentTrack = track;
-      await _player.setAsset(track.path);
+
+      // Set the audio source with MediaItem for lock screen/notifications
+      await _player.setAsset(
+        track.path,
+        tag: track.toMediaItem(),
+      );
+
       await _player.play();
 
       // Ensure audio session is active

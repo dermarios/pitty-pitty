@@ -1,3 +1,5 @@
+import 'package:just_audio_background/just_audio_background.dart';
+
 class Track {
   final String path;
   final String title;
@@ -10,6 +12,18 @@ class Track {
     this.duration = Duration.zero,
     this.imageAsset,
   });
+
+  /// Converte para MediaItem para mostrar na tela bloqueada do iOS/Android
+  MediaItem toMediaItem() {
+    return MediaItem(
+      id: path,
+      album: 'Pitty Player',
+      title: title,
+      artist: 'Pitty',
+      duration: duration,
+      artUri: imageAsset != null ? Uri.parse('asset://$imageAsset') : null,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
