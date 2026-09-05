@@ -24,7 +24,7 @@ class AudioService {
 
   Future<void> _initializeAudioSession() async {
     final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.speech());
+    await session.configure(const AudioSessionConfiguration.music());
   }
 
   Future<void> loadTracks() async {
