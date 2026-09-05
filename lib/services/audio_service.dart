@@ -18,12 +18,16 @@ class AudioService {
 
   AudioService() {
     _player = AudioPlayer();
-    _initializeAudioSession();
+    _initializeAudioSession().ignore();
   }
 
   Future<void> _initializeAudioSession() async {
-    final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.music());
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
+    } catch (e) {
+      // Silently fail if audio session configuration fails
+    }
   }
 
   Future<void> loadTracks() async {
