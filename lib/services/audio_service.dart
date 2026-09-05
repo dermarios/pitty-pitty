@@ -38,9 +38,8 @@ class AudioService {
         ),
         androidWillPauseWhenDucked: true,
       ));
-      print('✓ AudioSession configured successfully for lock screen');
     } catch (e) {
-      print('✗ AudioSession configuration error: $e');
+      // Silently fail if audio session configuration fails
     }
   }
 
@@ -75,27 +74,23 @@ class AudioService {
   Future<void> _setupLockScreen() async {
     if (_lockScreenSetup) return;
     try {
-      print('→ Setting up lock screen command handlers...');
       await _lockScreenChannel.invokeMethod('setCommandHandlers');
       _lockScreenSetup = true;
-      print('✓ Lock screen handlers setup complete');
     } catch (e) {
-      print('✗ Lock screen setup error: $e');
+      // Silently fail if lock screen setup fails
     }
   }
 
   Future<void> _updateLockScreenNowPlaying(Track track) async {
     try {
       final duration = track.duration.inSeconds.toDouble();
-      print('→ Updating lock screen: ${track.title} (${duration}s)');
       await _lockScreenChannel.invokeMethod('updateNowPlaying', {
         'title': track.title,
         'artist': 'Pitty',
         'duration': duration,
       });
-      print('✓ Lock screen updated with now playing info');
     } catch (e) {
-      print('✗ Lock screen update error: $e');
+      // Silently fail if lock screen update fails
     }
   }
 

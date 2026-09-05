@@ -116,12 +116,23 @@ class LockScreenManager {
     // Configure AVAudioSession immediately for lock screen support
     configureAudioSession()
 
-    // Wait a bit for Flutter to initialize, then try to set up the channel
-    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-      self?.ensureLockScreenChannelReady()
+    let result = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+
+    // AFTER super.application(), try to set up the channel
+    // Flutter should be more ready at this point
+    DispatchQueue.main.async { [weak self] in
+      self?.setupLockScreenChannelImmediately()
     }
 
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    return result
+  }
+
+  private func setupLockScreenChannelImmediately() {
+    _ = getLockScreenChannel()
+  }
+
+  private func ensureLockScreenChannelReady() {
+    // This is deprecated - using setupLockScreenChannelImmediately instead
   }
 
   private func configureAudioSession() {
@@ -139,18 +150,6 @@ class LockScreenManager {
       NSLog("[LockScreen] ✗ AVAudioSession configuration failed: %@", error.localizedDescription)
       print("[LockScreen] ✗ AVAudioSession configuration failed: \(error)")
     }
-  }
-
-  private func ensureLockScreenChannelReady() {
-    guard !lockScreenChannelSetup else { return }
-
-    guard let controller = window?.rootViewController as? FlutterViewController else {
-      NSLog("[LockScreen] Flutter still not ready after 1s, will create channel on first call")
-      return
-    }
-
-    NSLog("[LockScreen] ✓ Flutter ready at 1s mark. Setting up lock screen channel...")
-    setupLockScreenChannel()
   }
 
   private func getLockScreenChannel() -> FlutterMethodChannel? {
