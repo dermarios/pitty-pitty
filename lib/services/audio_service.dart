@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_session/audio_session.dart';
 import '../models/track.dart';
 
@@ -208,11 +209,13 @@ class AudioService {
       print('  - Artist: ${mediaItem.artist}');
       print('  - artUri: ${mediaItem.artUri}');
 
-      await _player.setAsset(
-        track.path,
+      // Use AudioSource with tag for just_audio_background to work
+      final audioSource = AudioSource.uri(
+        Uri.file(track.path),
         tag: mediaItem,
       );
 
+      await _player.setAudioSource(audioSource);
       await _player.play();
       print('✓ Audio started playing');
 
