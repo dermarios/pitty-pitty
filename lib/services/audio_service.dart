@@ -203,6 +203,15 @@ class AudioService {
       _currentTrack = track;
       await _player.setAsset(track.path);
       await _player.play();
+
+      // Ensure audio session is active
+      try {
+        final session = await AudioSession.instance;
+        await session.setActive(true);
+      } catch (e) {
+        // Ignore audio session errors
+      }
+
       await _setupLockScreen();
       await _updateLockScreenNowPlaying(track);
       await _updateLockScreenPlaybackState(true);

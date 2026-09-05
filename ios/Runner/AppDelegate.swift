@@ -61,6 +61,14 @@ class LockScreenManager {
     duration: Double,
     imageData: Data? = nil
   ) {
+    // Ensure AVAudioSession is active before updating
+    do {
+      let audioSession = AVAudioSession.sharedInstance()
+      try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+    } catch {
+      // Continue even if audio session activation fails
+    }
+
     var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
 
     nowPlayingInfo[MPMediaItemPropertyTitle] = title
@@ -72,7 +80,12 @@ class LockScreenManager {
     }
 
     nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0
+    // IMPORTANT: Set playback rate to 1.0 to show on lock screen
     nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
+    // IMPORTANT: Set is playing flag for iOS 16+
+    if #available(iOS 16.0, *) {
+      nowPlayingInfo[MPNowPlayingInfoPropertyIsLiveStream] = false
+    }
 
     if let imageData = imageData, let image = UIImage(data: imageData) {
       let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
@@ -80,8 +93,7 @@ class LockScreenManager {
     }
 
     MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-    print("[LockScreen] ✓ MPNowPlayingInfoCenter updated with: '\(title)' [\(duration)s]")
-    NSLog("[LockScreen] ✓ MPNowPlayingInfoCenter updated with: '%@' [%fs]", title, duration)
+    NSLog("[LockScreen] ✓ MPNowPlayingInfoCenter updated: '%@' (rate=1.0)", title)
   }
 
   func updatePlaybackState(isPlaying: Bool) {
