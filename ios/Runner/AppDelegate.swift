@@ -22,7 +22,7 @@ import AVFoundation
       try audioSession.setCategory(
         .playback,
         mode: .default,
-        options: [.duckOthers, .defaultToSpeaker]
+        options: [.duckOthers]
       )
       try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
     } catch {

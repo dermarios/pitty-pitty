@@ -7,11 +7,16 @@ import 'screens/credits_screen.dart';
 import 'screens/artist_screen.dart';
 
 void main() async {
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.forven.pittyplayer.audio',
-    androidNotificationChannelName: 'Pitty Player',
-    androidNotificationOngoing: true,
-  );
+  try {
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.forven.pittyplayer.audio',
+      androidNotificationChannelName: 'Pitty Player',
+      androidNotificationOngoing: true,
+    );
+    print('✓ JustAudioBackground initialized');
+  } catch (e) {
+    print('✗ JustAudioBackground init error: $e');
+  }
   runApp(const MyApp());
 }
 

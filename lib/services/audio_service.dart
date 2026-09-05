@@ -203,12 +203,18 @@ class AudioService {
       _currentTrack = track;
 
       // Set the audio source with MediaItem for lock screen/notifications
+      final mediaItem = track.toMediaItem();
+      print('→ Playing: ${mediaItem.title}');
+      print('  - Artist: ${mediaItem.artist}');
+      print('  - artUri: ${mediaItem.artUri}');
+
       await _player.setAsset(
         track.path,
-        tag: track.toMediaItem(),
+        tag: mediaItem,
       );
 
       await _player.play();
+      print('✓ Audio started playing');
 
       // Ensure audio session is active
       try {
