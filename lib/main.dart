@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'services/audio_service.dart';
 import 'screens/liquid_player_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/artist_screen.dart';
 
-void main() async {
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.forven.pittyplayer.audio',
-    androidNotificationChannelName: 'Pitty Player',
-    androidNotificationOngoing: true,
-  );
+void main() {
   runApp(const MyApp());
 }
 
