@@ -108,8 +108,17 @@ class LockScreenManager {
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
-    setupLockScreenChannel()
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(onApplicationDidBecomeActive),
+      name: UIApplication.didBecomeActiveNotification,
+      object: nil
+    )
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  @objc private func onApplicationDidBecomeActive() {
+    setupLockScreenChannel()
   }
 
   private func setupLockScreenChannel() {
