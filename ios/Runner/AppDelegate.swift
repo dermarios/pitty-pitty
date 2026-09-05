@@ -12,7 +12,8 @@ class LockScreenManager {
   private var onNextCommand: (() -> Void)?
   private var onPreviousCommand: (() -> Void)?
 
-  private init() {
+  private override init() {
+    super.init()
     setupRemoteCommands()
   }
 
@@ -111,6 +112,7 @@ class LockScreenManager {
   func clearNowPlaying() {
     MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
   }
+
 }
 
 // MARK: - AppDelegate
@@ -135,43 +137,11 @@ class LockScreenManager {
     DispatchQueue.main.async { [weak self] in
       self?.setupLockScreenChannelImmediately()
 
-      // Test: Force a Now Playing update to verify MPNowPlayingInfoCenter works
-      DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-        self?.testNowPlaying()
-      }
     }
 
     return result
   }
 
-  private func testNowPlaying() {
-    NSLog("[LockScreen] TEST: Starting testNowPlaying()")
-
-    // First, ensure audio session is active
-    do {
-      let audioSession = AVAudioSession.sharedInstance()
-      try audioSession.setCategory(.playback, mode: .default, options: [.duckOthers])
-      try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-      NSLog("[LockScreen] TEST: AudioSession activated")
-    } catch {
-      NSLog("[LockScreen] TEST: AudioSession activation failed: %@", error.localizedDescription)
-    }
-
-    var testInfo = [String: Any]()
-    testInfo[MPMediaItemPropertyTitle] = "TEST: Pitty Player"
-    testInfo[MPMediaItemPropertyArtist] = "Pitty"
-    testInfo[MPMediaItemPropertyAlbumTitle] = "Pitty Player"
-    testInfo[MPMediaItemPropertyPlaybackDuration] = 300.0
-    testInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0.0
-    testInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
-    testInfo[MPNowPlayingInfoPropertyIsLiveStream] = false
-
-    let center = MPNowPlayingInfoCenter.default()
-    center.nowPlayingInfo = testInfo
-
-    NSLog("[LockScreen] TEST: MPNowPlayingInfoCenter updated - should see on lock screen")
-    NSLog("[LockScreen] TEST: nowPlayingInfo set with title='TEST: Pitty Player'")
-  }
 
   private func setupLockScreenChannelImmediately() {
     _ = getLockScreenChannel()
