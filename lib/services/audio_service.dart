@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import '../models/track.dart';
@@ -16,9 +17,13 @@ class AudioService {
   Set<String> _likedTracks = {}; // Store track paths of liked tracks
   final _random = math.Random();
 
+  static const _lockScreenChannel = MethodChannel('com.forven.pittyplayer/lockscreen');
+  bool _lockScreenSetup = false;
+
   AudioService() {
     _player = AudioPlayer();
     _initializeAudioSession().ignore();
+    _setupLockScreenHandlers();
   }
 
   Future<void> _initializeAudioSession() async {
@@ -27,6 +32,75 @@ class AudioService {
       await session.configure(const AudioSessionConfiguration.music());
     } catch (e) {
       // Silently fail if audio session configuration fails
+    }
+  }
+
+  void _setupLockScreenHandlers() {
+    _lockScreenChannel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'onRemoteCommand':
+          final command = call.arguments['command'] as String?;
+          _handleRemoteCommand(command);
+          break;
+      }
+    });
+  }
+
+  void _handleRemoteCommand(String? command) {
+    switch (command) {
+      case 'play':
+        resume();
+        break;
+      case 'pause':
+        pause();
+        break;
+      case 'next':
+        next();
+        break;
+      case 'previous':
+        previous();
+        break;
+    }
+  }
+
+  Future<void> _setupLockScreen() async {
+    if (_lockScreenSetup) return;
+    try {
+      await _lockScreenChannel.invokeMethod('setCommandHandlers');
+      _lockScreenSetup = true;
+    } catch (e) {
+      // Silently fail if lock screen setup fails
+    }
+  }
+
+  Future<void> _updateLockScreenNowPlaying(Track track) async {
+    try {
+      final duration = track.duration.inSeconds.toDouble();
+      await _lockScreenChannel.invokeMethod('updateNowPlaying', {
+        'title': track.title,
+        'artist': 'Pitty',
+        'duration': duration,
+      });
+    } catch (e) {
+      // Silently fail if lock screen update fails
+    }
+  }
+
+  Future<void> _updateLockScreenPlaybackState(bool isPlaying) async {
+    try {
+      await _lockScreenChannel.invokeMethod('updatePlaybackState', {
+        'isPlaying': isPlaying,
+      });
+    } catch (e) {
+      // Silently fail if lock screen update fails
+    }
+  }
+
+  Future<void> _clearLockScreen() async {
+    try {
+      await _lockScreenChannel.invokeMethod('clearNowPlaying');
+    } catch (e) {
+      // Silently fail if lock screen clear fails
     }
   }
 
@@ -121,6 +195,9 @@ class AudioService {
       _currentTrack = track;
       await _player.setAsset(track.path);
       await _player.play();
+      await _setupLockScreen();
+      await _updateLockScreenNowPlaying(track);
+      await _updateLockScreenPlaybackState(true);
       _setupRepeatListener();
     } catch (e) {
       rethrow;
@@ -148,10 +225,12 @@ class AudioService {
 
   Future<void> pause() async {
     await _player.pause();
+    await _updateLockScreenPlaybackState(false);
   }
 
   Future<void> resume() async {
     await _player.play();
+    await _updateLockScreenPlaybackState(true);
   }
 
   Future<void> seekTo(Duration position) async {
@@ -167,6 +246,8 @@ class AudioService {
       final currentIndex = _tracks.indexOf(_currentTrack!);
       if (currentIndex != -1 && currentIndex < _tracks.length - 1) {
         await play(_tracks[currentIndex + 1]);
+      } else if (currentIndex == _tracks.length - 1 && _repeatMode == 2) {
+        await play(_tracks.first);
       }
     }
   }
@@ -210,6 +291,7 @@ class AudioService {
 
   void dispose() {
     _repeatListener?.cancel();
+    _clearLockScreen();
     _player.dispose();
   }
 }
