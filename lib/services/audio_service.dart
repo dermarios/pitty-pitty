@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
-import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import '../models/track.dart';
-
-const platform = MethodChannel('com.forven.pittyplayer/nowplaying');
 
 class AudioService {
   late AudioPlayer _player;
@@ -123,14 +120,6 @@ class AudioService {
     try {
       _currentTrack = track;
       await _player.setAsset(track.path);
-
-      // Update lock screen info
-      unawaited(platform.invokeMethod('updateNowPlaying', {
-        'title': track.title,
-        'artist': 'Pitty',
-        'duration': (track.duration?.inMilliseconds.toDouble() ?? 0) / 1000,
-      }));
-
       await _player.play();
       _setupRepeatListener();
     } catch (e) {
