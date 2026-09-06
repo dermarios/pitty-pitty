@@ -5,6 +5,8 @@ import MediaPlayer
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
+  static var audioChannel: FlutterMethodChannel?
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -14,8 +16,8 @@ import MediaPlayer
     // Configure AVAudioSession for background playback with lock screen controls
     configureAudioSession()
 
-    // Setup lock screen command handlers
-    setupLockScreenCommands()
+    // Setup Flutter channel for lock screen commands
+    setupAudioChannel()
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
@@ -34,37 +36,21 @@ import MediaPlayer
     }
   }
 
-  private func setupLockScreenCommands() {
-    let lockScreenManager = LockScreenManager.shared
-
-    // Delay setup until window and controller are available
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+  private func setupAudioChannel() {
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
       guard let self = self,
-            let window = self.window,
-            let controller = window.rootViewController as? FlutterViewController else {
+            let controller = self.window?.rootViewController as? FlutterViewController else {
         return
       }
 
-      let audioChannel = FlutterMethodChannel(
+      AppDelegate.audioChannel = FlutterMethodChannel(
         name: "com.forven.pittyplayer/audio",
         binaryMessenger: controller.binaryMessenger
       )
 
-      // Register lock screen command handlers
-      lockScreenManager.setCommandHandlers(
-        onPlay: {
-          audioChannel.invokeMethod("play", arguments: nil)
-        },
-        onPause: {
-          audioChannel.invokeMethod("pause", arguments: nil)
-        },
-        onNext: {
-          audioChannel.invokeMethod("next", arguments: nil)
-        },
-        onPrevious: {
-          audioChannel.invokeMethod("previous", arguments: nil)
-        }
-      )
+      let lockScreenManager = LockScreenManager.shared
+      lockScreenManager.setAudioChannel(AppDelegate.audioChannel)
+      lockScreenManager.setupRemoteCommands()
     }
   }
 }
@@ -74,50 +60,41 @@ class LockScreenManager {
   static let shared = LockScreenManager()
 
   private let commandCenter = MPRemoteCommandCenter.shared()
-  private var onPlayCommand: (() -> Void)?
-  private var onPauseCommand: (() -> Void)?
-  private var onNextCommand: (() -> Void)?
-  private var onPreviousCommand: (() -> Void)?
+  private var audioChannel: FlutterMethodChannel?
 
-  private init() {
-    setupRemoteCommands()
+  private init() {}
+
+  func setAudioChannel(_ channel: FlutterMethodChannel?) {
+    self.audioChannel = channel
   }
 
-  func setCommandHandlers(
-    onPlay: @escaping () -> Void,
-    onPause: @escaping () -> Void,
-    onNext: @escaping () -> Void,
-    onPrevious: @escaping () -> Void
-  ) {
-    self.onPlayCommand = onPlay
-    self.onPauseCommand = onPause
-    self.onNextCommand = onNext
-    self.onPreviousCommand = onPrevious
-  }
-
-  private func setupRemoteCommands() {
+  func setupRemoteCommands() {
     commandCenter.playCommand.isEnabled = true
     commandCenter.pauseCommand.isEnabled = true
     commandCenter.nextTrackCommand.isEnabled = true
     commandCenter.previousTrackCommand.isEnabled = true
 
     commandCenter.playCommand.addTarget { [weak self] _ in
-      self?.onPlayCommand?()
+      print("[LockScreen] Play button tapped")
+      self?.audioChannel?.invokeMethod("play", arguments: nil)
       return .success
     }
 
     commandCenter.pauseCommand.addTarget { [weak self] _ in
-      self?.onPauseCommand?()
+      print("[LockScreen] Pause button tapped")
+      self?.audioChannel?.invokeMethod("pause", arguments: nil)
       return .success
     }
 
     commandCenter.nextTrackCommand.addTarget { [weak self] _ in
-      self?.onNextCommand?()
+      print("[LockScreen] Next button tapped")
+      self?.audioChannel?.invokeMethod("next", arguments: nil)
       return .success
     }
 
     commandCenter.previousTrackCommand.addTarget { [weak self] _ in
-      self?.onPreviousCommand?()
+      print("[LockScreen] Previous button tapped")
+      self?.audioChannel?.invokeMethod("previous", arguments: nil)
       return .success
     }
   }
