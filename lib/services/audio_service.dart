@@ -6,7 +6,7 @@ import 'package:audio_service/audio_service.dart';
 import '../models/track.dart';
 import 'background_audio_handler.dart';
 
-class AudioService {
+class PittyAudioService {
   late AudioPlayer _player;
   List<Track> _tracks = [];
   Track? _currentTrack;
@@ -18,7 +18,7 @@ class AudioService {
   Set<String> _likedTracks = {};
   final _random = math.Random();
 
-  AudioService() {
+  PittyAudioService() {
     _player = AudioPlayer();
     _initializeAudioSession().ignore();
     _setupPlayerListeners();

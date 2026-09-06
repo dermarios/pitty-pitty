@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui' show Color;
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_service/audio_service.dart';
-import 'services/audio_service.dart';
+import 'services/audio_service.dart' as pitty_audio;
 import 'services/background_audio_handler.dart';
 import 'screens/liquid_player_screen.dart';
 import 'screens/gallery_screen.dart';
@@ -37,7 +37,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final audioService = AudioService();
+    final audioService = pitty_audio.PittyAudioService();
 
     return MaterialApp(
       title: 'Pitty Player',
@@ -51,7 +51,7 @@ class MyApp extends StatelessWidget {
 }
 
 class HomeWithSwipe extends StatefulWidget {
-  final AudioService audioService;
+  final pitty_audio.PittyAudioService audioService;
 
   const HomeWithSwipe({
     super.key,

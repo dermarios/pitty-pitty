@@ -4,14 +4,14 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-import '../services/audio_service.dart';
+import '../services/audio_service.dart' as pitty_audio;
 import 'liquid_player_screen.dart' show Glass, GlassMode, kPaletas;
 
 /// Tela "Artista" — evolução da SideScreen: a foto sangra na tela inteira e os
 /// blobs líquidos entram POR CIMA dela em blend soft-light / screen, então a
 /// cor se funde à imagem em vez de ficar atrás.
 class ArtistScreen extends StatefulWidget {
-  final AudioService audioService;
+  final pitty_audio.PittyAudioService audioService;
   final VoidCallback? onBackPressed;
   final VoidCallback? onPlayPressed;
 
