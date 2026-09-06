@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' show Color;
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_service/audio_service.dart' as audio_service;
 import 'services/audio_service.dart';
@@ -9,12 +10,6 @@ import 'screens/gallery_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/artist_screen.dart';
 
-Future<void> _audioServiceEntrypoint() async {
-  audio_service.AudioServiceBackground.run(() async {
-    return BackgroundAudioHandler();
-  });
-}
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -24,14 +19,9 @@ void main() async {
     androidNotificationOngoing: true,
   );
 
-  await audio_service.AudioService.init(
-    builder: () => BackgroundAudioHandler(),
-    config: const audio_service.AudioServiceConfig(
-      androidResumeOnClick: true,
-      androidStopForegroundOnPause: true,
-      notificationColor: 0xFF667eea,
-    ),
-  );
+  // AudioService initialization will be done by audio_service plugin automatically
+  // Just ensure BackgroundAudioHandler is created
+  BackgroundAudioHandler();
 
   runApp(const MyApp());
 }

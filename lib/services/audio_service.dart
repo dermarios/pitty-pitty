@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:audio_service/audio_service.dart';
 import '../models/track.dart';
 import 'background_audio_handler.dart';
 
@@ -74,7 +75,7 @@ class AudioService {
       final playerState = _player.playerState;
       BackgroundAudioHandler.instance.updatePlaybackState(
         playing: playerState.playing,
-        processingState: playerState.processingState,
+        processingState: _convertProcessingState(playerState.processingState),
         position: _player.position,
         bufferedPosition: _player.bufferedPosition,
         speed: _player.speed,
@@ -87,9 +88,28 @@ class AudioService {
     }
   }
 
+  AudioProcessingState _convertProcessingState(ProcessingState state) {
+    switch (state) {
+      case ProcessingState.idle:
+        return AudioProcessingState.idle;
+      case ProcessingState.loading:
+        return AudioProcessingState.loading;
+      case ProcessingState.buffering:
+        return AudioProcessingState.buffering;
+      case ProcessingState.ready:
+        return AudioProcessingState.ready;
+      case ProcessingState.completed:
+        return AudioProcessingState.completed;
+    }
+  }
+
   void _registerBackgroundCallbacks() {
     BackgroundAudioHandler.instance.setCallbacks(
-      play: play,
+      play: () async {
+        if (_currentTrack != null) {
+          await resume();
+        }
+      },
       pause: pause,
       next: next,
       previous: previous,

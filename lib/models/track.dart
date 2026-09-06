@@ -21,7 +21,9 @@ class Track {
       title: title,
       artist: 'Pitty',
       duration: duration,
-      artUri: imageAsset != null ? Uri.file(imageAsset!) : null,
+      // Note: artwork será gerenciado pelo BackgroundAudioHandler
+      // que copia o asset para diretório temporário
+      artUri: null,
     );
   }
 
