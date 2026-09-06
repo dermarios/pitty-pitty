@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' show Color;
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_service/audio_service.dart';
 import 'services/audio_service.dart' as pitty_audio;
-import 'services/background_audio_handler.dart';
+import 'services/lock_screen_audio_handler.dart';
 import 'screens/liquid_player_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/artist_screen.dart';
 
-late AudioHandler _audioHandler;
+late LockScreenAudioHandler audioHandler;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,8 +19,8 @@ void main() async {
     androidNotificationOngoing: true,
   );
 
-  _audioHandler = await AudioService.init(
-    builder: () => BackgroundAudioHandler(),
+  audioHandler = await AudioService.init(
+    builder: () => LockScreenAudioHandler(),
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.forven.pittyplayer.channel.audio',
       androidNotificationChannelName: 'Pitty Player',
@@ -37,7 +36,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final audioService = pitty_audio.PittyAudioService();
+    final audioService = pitty_audio.PittyAudioService(audioHandler);
 
     return MaterialApp(
       title: 'Pitty Player',

@@ -2,41 +2,30 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
-import 'package:audio_service/audio_service.dart';
 import '../models/track.dart';
-import 'background_audio_handler.dart';
+import 'lock_screen_audio_handler.dart';
 
 class PittyAudioService {
   late AudioPlayer _player;
+  late LockScreenAudioHandler _audioHandler;
   List<Track> _tracks = [];
   Track? _currentTrack;
   bool _tracksLoaded = false;
-  int _repeatMode = 0; // 0: no repeat, 1: repeat one, 2: repeat all
+  int _repeatMode = 0;
   bool _shuffleMode = false;
   StreamSubscription<PlayerState>? _repeatListener;
   StreamSubscription<Duration>? _positionListener;
   Set<String> _likedTracks = {};
   final _random = math.Random();
 
-  PittyAudioService() {
-    _player = AudioPlayer();
+  PittyAudioService(this._audioHandler) {
+    _player = _audioHandler.player;
     _initializeAudioSession().ignore();
     _setupPlayerListeners();
   }
 
   void _setupPlayerListeners() {
-    // Listener para mudanças de estado do player
-    _player.playerStateStream.listen((state) {
-      _updateBackgroundHandler();
-    });
-
-    // Listener para mudanças de posição (atualiza lock screen)
-    _positionListener?.cancel();
-    _positionListener = _player.positionStream.listen((position) {
-      if (_currentTrack != null) {
-        BackgroundAudioHandler.instance.updateElapsedTime(position);
-      }
-    });
+    // Lock screen updates are now handled by LockScreenAudioHandler
   }
 
   Future<void> _initializeAudioSession() async {
@@ -56,66 +45,6 @@ class PittyAudioService {
     }
   }
 
-  Future<void> _updateBackgroundHandler() async {
-    if (_currentTrack == null) return;
-
-    try {
-      // Atualizar metadados e artwork na tela bloqueada
-      await BackgroundAudioHandler.instance.updateNowPlaying(
-        id: _currentTrack!.path,
-        title: _currentTrack!.title,
-        artist: 'Pitty',
-        album: 'Pitty Player',
-        duration: _currentTrack!.duration,
-        artworkAssetPath: _currentTrack!.imageAsset,
-        elapsedTime: _player.position,
-      );
-
-      // Atualizar estado de playback
-      final playerState = _player.playerState;
-      BackgroundAudioHandler.instance.updatePlaybackState(
-        playing: playerState.playing,
-        processingState: _convertProcessingState(playerState.processingState),
-        position: _player.position,
-        bufferedPosition: _player.bufferedPosition,
-        speed: _player.speed,
-      );
-
-      // Registrar callbacks se ainda não foram registrados
-      _registerBackgroundCallbacks();
-    } catch (e) {
-      print('Error updating background handler: $e');
-    }
-  }
-
-  AudioProcessingState _convertProcessingState(ProcessingState state) {
-    switch (state) {
-      case ProcessingState.idle:
-        return AudioProcessingState.idle;
-      case ProcessingState.loading:
-        return AudioProcessingState.loading;
-      case ProcessingState.buffering:
-        return AudioProcessingState.buffering;
-      case ProcessingState.ready:
-        return AudioProcessingState.ready;
-      case ProcessingState.completed:
-        return AudioProcessingState.completed;
-    }
-  }
-
-  void _registerBackgroundCallbacks() {
-    BackgroundAudioHandler.instance.setCallbacks(
-      play: () async {
-        if (_currentTrack != null) {
-          await resume();
-        }
-      },
-      pause: pause,
-      next: next,
-      previous: previous,
-      seek: seekTo,
-    );
-  }
 
   Future<void> loadTracks() async {
     if (_tracksLoaded) return;
@@ -178,13 +107,14 @@ class PittyAudioService {
       ),
     ];
 
-    // Adicionar tracks sem bloquear no carregamento de duração
     _tracks.addAll(hardcodedTracks);
     _tracks.sort((a, b) => a.title.compareTo(b.title));
 
+    // Initialize lock screen handler with playlist
+    await _audioHandler.initializePlaylist(_tracks);
+
     if (_tracks.isNotEmpty && _currentTrack == null) {
       _currentTrack = _tracks.first;
-      await _setCurrentAudioSource(_currentTrack!);
     }
     _tracksLoaded = true;
   }
@@ -196,14 +126,16 @@ class PittyAudioService {
       print('  - Artist: Pitty');
 
       await _activateAudioSession();
-      await _setCurrentAudioSource(track);
+
+      final trackIndex = _tracks.indexOf(track);
+      if (trackIndex != -1) {
+        await _player.seek(Duration.zero, index: trackIndex);
+      }
+
       await _player.play();
       print('✓ Audio started playing');
 
       _setupRepeatListener();
-
-      // Atualizar lock screen
-      await _updateBackgroundHandler();
     } catch (e) {
       rethrow;
     }
@@ -230,18 +162,15 @@ class PittyAudioService {
 
   Future<void> pause() async {
     await _player.pause();
-    await _updateBackgroundHandler();
   }
 
   Future<void> resume() async {
     await _activateAudioSession();
     await _player.play();
-    await _updateBackgroundHandler();
   }
 
   Future<void> seekTo(Duration position) async {
     await _player.seek(position);
-    await _updateBackgroundHandler();
   }
 
   Future<void> next() async {
@@ -257,7 +186,6 @@ class PittyAudioService {
         await play(_tracks.first);
       }
     }
-    await _updateBackgroundHandler();
   }
 
   Future<void> previous() async {
@@ -266,7 +194,6 @@ class PittyAudioService {
     if (currentIndex > 0) {
       await play(_tracks[currentIndex - 1]);
     }
-    await _updateBackgroundHandler();
   }
 
   AudioPlayer get player => _player;
@@ -301,17 +228,7 @@ class PittyAudioService {
   void dispose() {
     _repeatListener?.cancel();
     _positionListener?.cancel();
-    BackgroundAudioHandler.instance.clearNowPlaying();
     _player.dispose();
-  }
-
-  Future<void> _setCurrentAudioSource(Track track) async {
-    await _player.setAudioSource(
-      AudioSource.asset(
-        track.path,
-        tag: track.toMediaItem(),
-      ),
-    );
   }
 
   Future<void> _activateAudioSession() async {
