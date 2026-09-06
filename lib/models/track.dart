@@ -15,15 +15,13 @@ class Track {
 
   /// Converte para MediaItem para mostrar na tela bloqueada do iOS/Android
   MediaItem toMediaItem() {
-    // Note: just_audio_background não suporta asset:// URIs
-    // Use null (sem imagem) ou um arquivo real (http/https/file)
     return MediaItem(
       id: path,
       album: 'Pitty Player',
       title: title,
       artist: 'Pitty',
       duration: duration,
-      artUri: null, // just_audio_background requer URL real, não asset://
+      artUri: null,
     );
   }
 

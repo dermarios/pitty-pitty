@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:audio_service/audio_service.dart' as audio_service_pkg;
+import 'package:just_audio_background/just_audio_background.dart';
 import 'services/audio_service.dart';
-import 'services/background_audio_handler.dart';
 import 'screens/liquid_player_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/artist_screen.dart';
 
 void main() async {
-  await audio_service_pkg.AudioService.init(
-    builder: () => BackgroundAudioHandler(),
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.forven.pittyplayer.channel.audio',
+    androidNotificationChannelName: 'Pitty Player',
+    androidNotificationOngoing: true,
   );
-  print('✓ AudioService initialized');
   runApp(const MyApp());
 }
 

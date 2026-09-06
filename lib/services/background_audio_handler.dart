@@ -1,14 +1,16 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/services.dart';
-import 'dart:async';
 import 'dart:io';
 
 // Global instance for easy access
 late BackgroundAudioHandler _globalHandler;
 
 class BackgroundAudioHandler extends BaseAudioHandler {
-  StreamSubscription? _playbackStateSubscription;
-  StreamSubscription? _mediaItemSubscription;
+  Future<void> Function()? onPlay;
+  Future<void> Function()? onPause;
+  Future<void> Function()? onNext;
+  Future<void> Function()? onPrevious;
+  Future<void> Function(Duration position)? onSeek;
 
   BackgroundAudioHandler() {
     _globalHandler = this;
@@ -16,6 +18,20 @@ class BackgroundAudioHandler extends BaseAudioHandler {
   }
 
   static BackgroundAudioHandler get instance => _globalHandler;
+
+  void setCallbacks({
+    Future<void> Function()? play,
+    Future<void> Function()? pause,
+    Future<void> Function()? next,
+    Future<void> Function()? previous,
+    Future<void> Function(Duration position)? seek,
+  }) {
+    onPlay = play;
+    onPause = pause;
+    onNext = next;
+    onPrevious = previous;
+    onSeek = seek;
+  }
 
   Future<String?> _copyAssetToTemp(String assetPath) async {
     try {
@@ -26,7 +42,10 @@ class BackgroundAudioHandler extends BaseAudioHandler {
       );
 
       final tempDir = Directory.systemTemp;
-      final tempFile = File('${tempDir.path}/artwork_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final extension = assetPath.split('.').last;
+      final tempFile = File(
+        '${tempDir.path}/artwork_${DateTime.now().millisecondsSinceEpoch}.$extension',
+      );
       await tempFile.writeAsBytes(uint8list);
 
       return tempFile.path;
@@ -68,14 +87,36 @@ class BackgroundAudioHandler extends BaseAudioHandler {
     mediaItem.add(null);
   }
 
+  void updatePlaybackState({
+    required bool playing,
+    required AudioProcessingState processingState,
+    required Duration position,
+    required Duration bufferedPosition,
+    required double speed,
+  }) {
+    playbackState.add(playbackState.value.copyWith(
+      controls: [
+        MediaControl.skipToPrevious,
+        if (playing) MediaControl.pause else MediaControl.play,
+        MediaControl.skipToNext,
+      ],
+      systemActions: const {MediaAction.seek},
+      processingState: processingState,
+      playing: playing,
+      updatePosition: position,
+      bufferedPosition: bufferedPosition,
+      speed: speed,
+    ));
+  }
+
   @override
   Future<void> play() async {
-    playbackState.add(_playbackState(playing: true));
+    await onPlay?.call();
   }
 
   @override
   Future<void> pause() async {
-    playbackState.add(_playbackState(playing: false));
+    await onPause?.call();
   }
 
   @override
@@ -102,8 +143,16 @@ class BackgroundAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> seek(Duration position) async {
-    playbackState.add(_playbackState(playing: true).copyWith(
-      updatePosition: position,
-    ));
+    await onSeek?.call(position);
+  }
+
+  @override
+  Future<void> skipToNext() async {
+    await onNext?.call();
+  }
+
+  @override
+  Future<void> skipToPrevious() async {
+    await onPrevious?.call();
   }
 }

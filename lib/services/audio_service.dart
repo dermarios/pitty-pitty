@@ -1,14 +1,11 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:just_audio/just_audio.dart';
-import 'package:audio_service/audio_service.dart' as audio_service_pkg;
 import 'package:audio_session/audio_session.dart';
 import '../models/track.dart';
-import 'background_audio_handler.dart';
 
 class AudioService {
   late AudioPlayer _player;
-  BackgroundAudioHandler? _backgroundHandler;
   List<Track> _tracks = [];
   Track? _currentTrack;
   bool _tracksLoaded = false;
@@ -21,15 +18,6 @@ class AudioService {
   AudioService() {
     _player = AudioPlayer();
     _initializeAudioSession().ignore();
-    _initializeBackgroundHandler();
-  }
-
-  void _initializeBackgroundHandler() {
-    try {
-      _backgroundHandler = BackgroundAudioHandler.instance;
-    } catch (e) {
-      print('Warning: Background handler not available: $e');
-    }
   }
 
   Future<void> _initializeAudioSession() async {
@@ -46,22 +34,6 @@ class AudioService {
       ));
     } catch (e) {
       // Silently fail if audio session configuration fails
-    }
-  }
-
-  Future<void> _updateNowPlaying(Track track) async {
-    if (_backgroundHandler == null) return;
-    try {
-      await _backgroundHandler!.updateNowPlaying(
-        id: track.path,
-        title: track.title,
-        artist: 'Pitty',
-        album: 'Pitty Player',
-        duration: track.duration,
-        artworkAssetPath: track.imageAsset,
-      );
-    } catch (e) {
-      print('Error updating now playing: $e');
     }
   }
 
@@ -146,7 +118,7 @@ class AudioService {
 
     if (_tracks.isNotEmpty && _currentTrack == null) {
       _currentTrack = _tracks.first;
-      await _player.setAsset(_currentTrack!.path);
+      await _setCurrentAudioSource(_currentTrack!);
     }
     _tracksLoaded = true;
   }
@@ -157,19 +129,10 @@ class AudioService {
       print('→ Playing: ${track.title}');
       print('  - Artist: Pitty');
 
-      await _player.setAsset(track.path);
+      await _activateAudioSession();
+      await _setCurrentAudioSource(track);
       await _player.play();
       print('✓ Audio started playing');
-
-      await _updateNowPlaying(track);
-
-      // Ensure audio session is active
-      try {
-        final session = await AudioSession.instance;
-        await session.setActive(true);
-      } catch (e) {
-        // Ignore audio session errors
-      }
 
       _setupRepeatListener();
     } catch (e) {
@@ -198,12 +161,11 @@ class AudioService {
 
   Future<void> pause() async {
     await _player.pause();
-    if (_backgroundHandler != null) await _backgroundHandler!.pause();
   }
 
   Future<void> resume() async {
+    await _activateAudioSession();
     await _player.play();
-    if (_backgroundHandler != null) await _backgroundHandler!.play();
   }
 
   Future<void> seekTo(Duration position) async {
@@ -264,10 +226,24 @@ class AudioService {
 
   void dispose() {
     _repeatListener?.cancel();
-    if (_backgroundHandler != null) {
-      _backgroundHandler!.stop();
-      _backgroundHandler!.clearNowPlaying();
-    }
     _player.dispose();
+  }
+
+  Future<void> _setCurrentAudioSource(Track track) async {
+    await _player.setAudioSource(
+      AudioSource.asset(
+        track.path,
+        tag: track.toMediaItem(),
+      ),
+    );
+  }
+
+  Future<void> _activateAudioSession() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.setActive(true);
+    } catch (e) {
+      // Ignore audio session errors
+    }
   }
 }
