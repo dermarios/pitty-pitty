@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_service/audio_service.dart';
 import 'services/audio_service.dart' as pitty_audio;
 import 'services/lock_screen_audio_handler.dart';
@@ -13,22 +12,17 @@ late LockScreenAudioHandler audioHandler;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.forven.pittyplayer.channel.audio',
-    androidNotificationChannelName: 'Pitty Player',
-    androidNotificationOngoing: true,
-  );
-
-  await AudioService.init(
+  print('🔄 Initializing AudioService...');
+  audioHandler = await AudioService.init(
     builder: () => LockScreenAudioHandler(),
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.forven.pittyplayer.channel.audio',
       androidNotificationChannelName: 'Pitty Player',
       androidNotificationOngoing: true,
+      androidStopForegroundOnPause: true,
     ),
-  );
-
-  audioHandler = AudioService.handler as LockScreenAudioHandler;
+  ) as LockScreenAudioHandler;
+  print('✅ AudioService ready');
 
   runApp(const MyApp());
 }

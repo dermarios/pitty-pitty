@@ -14,37 +14,22 @@ class PittyAudioService {
   int _repeatMode = 0;
   bool _shuffleMode = false;
   StreamSubscription<PlayerState>? _repeatListener;
-  StreamSubscription<Duration>? _positionListener;
   Set<String> _likedTracks = {};
   final _random = math.Random();
 
   PittyAudioService(this._audioHandler) {
     _player = _audioHandler.player;
     _initializeAudioSession().ignore();
-    _setupPlayerListeners();
-  }
-
-  void _setupPlayerListeners() {
-    // Lock screen updates are now handled by LockScreenAudioHandler
   }
 
   Future<void> _initializeAudioSession() async {
     try {
       final session = await AudioSession.instance;
-      await session.configure(const AudioSessionConfiguration(
-        avAudioSessionCategory: AVAudioSessionCategory.playback,
-        avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.duckOthers,
-        androidAudioAttributes: AndroidAudioAttributes(
-          contentType: AndroidAudioContentType.music,
-          usage: AndroidAudioUsage.media,
-        ),
-        androidWillPauseWhenDucked: true,
-      ));
+      await session.configure(const AudioSessionConfiguration.music());
     } catch (e) {
       print('Error configuring audio session: $e');
     }
   }
-
 
   Future<void> loadTracks() async {
     if (_tracksLoaded) return;
@@ -125,8 +110,6 @@ class PittyAudioService {
       print('→ Playing: ${track.title}');
       print('  - Artist: Pitty');
 
-      await _activateAudioSession();
-
       final trackIndex = _tracks.indexOf(track);
       if (trackIndex != -1) {
         await _player.seek(Duration.zero, index: trackIndex);
@@ -165,7 +148,6 @@ class PittyAudioService {
   }
 
   Future<void> resume() async {
-    await _activateAudioSession();
     await _player.play();
   }
 
@@ -227,16 +209,6 @@ class PittyAudioService {
 
   void dispose() {
     _repeatListener?.cancel();
-    _positionListener?.cancel();
     _player.dispose();
-  }
-
-  Future<void> _activateAudioSession() async {
-    try {
-      final session = await AudioSession.instance;
-      await session.setActive(true);
-    } catch (e) {
-      // Ignore audio session errors
-    }
   }
 }

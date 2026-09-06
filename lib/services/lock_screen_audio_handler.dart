@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:rxdart/rxdart.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
@@ -9,7 +10,7 @@ import '../models/track.dart';
 class LockScreenAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   final _player = AudioPlayer();
   final _playlist = ConcatenatingAudioSource(children: []);
-  Map<String, String> _artworkCache = {};
+  String? _artworkPath;
   bool _initialized = false;
   List<MediaItem> _mediaItems = [];
 
@@ -22,22 +23,22 @@ class LockScreenAudioHandler extends BaseAudioHandler with QueueHandler, SeekHan
     _initialized = true;
 
     try {
-      // Configure audio session for playback (required for lock screen)
+      // 1) Configure audio session: playback category is required for lock screen
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.music());
       print('✓ AudioSession configured for lock screen');
 
-      // Broadcast player state changes to audio_service
+      // 2) Broadcast every just_audio event to audio_service
       _player.playbackEventStream.listen(_broadcastState);
 
-      // Update MediaItem when track changes
+      // 3) When track changes, update the current MediaItem
       _player.currentIndexStream.listen((index) {
         if (index != null && index < _mediaItems.length) {
           mediaItem.add(_mediaItems[index]);
         }
       });
 
-      // Handle audio interruptions and headphone disconnect
+      // 4) Handle interruptions and headphone disconnect
       session.interruptionEventStream.listen((event) {
         if (event.begin) {
           if (event.type == AudioInterruptionType.duck) {
@@ -55,7 +56,7 @@ class LockScreenAudioHandler extends BaseAudioHandler with QueueHandler, SeekHan
       });
       session.becomingNoisyEventStream.listen((_) => _player.pause());
 
-      print('✓ LockScreenAudioHandler initialized');
+      print('✓ LockScreenAudioHandler initialized successfully');
     } catch (e) {
       print('✗ Error initializing LockScreenAudioHandler: $e');
       rethrow;
@@ -65,32 +66,36 @@ class LockScreenAudioHandler extends BaseAudioHandler with QueueHandler, SeekHan
   Future<void> initializePlaylist(List<Track> tracks) async {
     try {
       _mediaItems = [];
-      _playlist.clear();
+      _playlist.children.clear();
 
-      // Prepare artwork for all tracks
-      for (final track in tracks) {
-        final artworkPath = track.imageAsset != null
-            ? await _prepareArtwork(track.imageAsset!)
-            : null;
-
-        final item = MediaItem(
-          id: track.path,
-          title: track.title,
-          artist: 'Pitty',
-          album: 'Pitty Player',
-          duration: track.duration ?? Duration.zero,
-          artUri: artworkPath != null ? Uri.file(artworkPath) : null,
-        );
-
-        _mediaItems.add(item);
-        _playlist.add(AudioSource.asset(track.path, tag: item));
+      // Prepare artwork first (copy from assets to filesystem)
+      if (tracks.isNotEmpty && tracks.first.imageAsset != null) {
+        await _prepareArtwork(tracks.first.imageAsset!);
       }
 
-      queue.add(_mediaItems);
-      if (_mediaItems.isNotEmpty) {
-        mediaItem.add(_mediaItems.first);
+      // Build playlist from tracks
+      final items = <MediaItem>[
+        for (final track in tracks)
+          MediaItem(
+            id: track.path,
+            title: track.title,
+            artist: 'Pitty',
+            album: 'Pitty Player',
+            duration: track.duration,
+            artUri: _artworkPath != null ? Uri.file(_artworkPath!) : null,
+          ),
+      ];
+
+      _mediaItems = items;
+      queue.add(items);
+      if (items.isNotEmpty) {
+        mediaItem.add(items.first);
       }
 
+      // Load audio sources from assets
+      await _playlist.addAll([
+        for (final track in tracks) AudioSource.asset(track.path, tag: track.toMediaItem()),
+      ]);
       await _player.setAudioSource(_playlist);
       print('✓ Playlist initialized with ${_mediaItems.length} tracks');
     } catch (e) {
@@ -99,16 +104,10 @@ class LockScreenAudioHandler extends BaseAudioHandler with QueueHandler, SeekHan
     }
   }
 
-  Future<String?> _prepareArtwork(String assetPath) async {
-    // Check cache first
-    if (_artworkCache.containsKey(assetPath)) {
-      return _artworkCache[assetPath];
-    }
-
+  Future<void> _prepareArtwork(String assetPath) async {
     try {
       final appDocDir = await getApplicationDocumentsDirectory();
-      final fileName = assetPath.split('/').last;
-      final destPath = '${appDocDir.path}/$fileName';
+      final destPath = '${appDocDir.path}/cover.jpg';
       final destFile = File(destPath);
 
       if (!await destFile.exists()) {
@@ -121,12 +120,10 @@ class LockScreenAudioHandler extends BaseAudioHandler with QueueHandler, SeekHan
           ),
         );
       }
-
-      _artworkCache[assetPath] = destPath;
-      return destPath;
+      _artworkPath = destPath;
     } catch (e) {
-      print('✗ Error preparing artwork: $e');
-      return null;
+      print('Error preparing artwork: $e');
+      _artworkPath = null;
     }
   }
 
@@ -180,8 +177,4 @@ class LockScreenAudioHandler extends BaseAudioHandler with QueueHandler, SeekHan
   }
 
   AudioPlayer get player => _player;
-
-  Future<void> dispose() async {
-    await _player.dispose();
-  }
 }
