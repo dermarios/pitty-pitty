@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../services/audio_service.dart';
+import '../services/audio_service.dart' as pitty_audio;
 import 'liquid_player_screen.dart';
 
 /// Créditos da obra — produção, composição, banda, fotografia e arte.
 /// Substitua a constante `kCreditos` pelos créditos reais.
 class CreditsScreen extends StatefulWidget {
-  final AudioService audioService;
+  final pitty_audio.PittyAudioService audioService;
   const CreditsScreen({super.key, required this.audioService});
 
   @override

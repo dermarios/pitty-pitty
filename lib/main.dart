@@ -1,11 +1,29 @@
 import 'package:flutter/material.dart';
-import 'services/audio_service.dart';
+import 'package:audio_service/audio_service.dart';
+import 'services/audio_service.dart' as pitty_audio;
+import 'services/lock_screen_audio_handler.dart';
 import 'screens/liquid_player_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/artist_screen.dart';
 
-void main() {
+late LockScreenAudioHandler audioHandler;
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  print('🔄 Initializing AudioService...');
+  audioHandler = await AudioService.init(
+    builder: () => LockScreenAudioHandler(),
+    config: const AudioServiceConfig(
+      androidNotificationChannelId: 'com.forven.pittyplayer.channel.audio',
+      androidNotificationChannelName: 'Pitty Player',
+      androidNotificationOngoing: true,
+      androidStopForegroundOnPause: true,
+    ),
+  ) as LockScreenAudioHandler;
+  print('✅ AudioService ready');
+
   runApp(const MyApp());
 }
 
@@ -14,7 +32,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final audioService = AudioService();
+    final audioService = pitty_audio.PittyAudioService(audioHandler);
 
     return MaterialApp(
       title: 'Pitty Player',
@@ -28,7 +46,7 @@ class MyApp extends StatelessWidget {
 }
 
 class HomeWithSwipe extends StatefulWidget {
-  final AudioService audioService;
+  final pitty_audio.PittyAudioService audioService;
 
   const HomeWithSwipe({
     super.key,

@@ -1,23 +1,24 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import '../models/track.dart';
+import 'lock_screen_audio_handler.dart';
 
-class AudioService {
+class PittyAudioService {
   late AudioPlayer _player;
+  late LockScreenAudioHandler _audioHandler;
   List<Track> _tracks = [];
   Track? _currentTrack;
   bool _tracksLoaded = false;
-  int _repeatMode = 0; // 0: no repeat, 1: repeat one, 2: repeat all
+  int _repeatMode = 0;
   bool _shuffleMode = false;
   StreamSubscription<PlayerState>? _repeatListener;
-  Set<String> _likedTracks = {}; // Store track paths of liked tracks
+  Set<String> _likedTracks = {};
   final _random = math.Random();
 
-  AudioService() {
-    _player = AudioPlayer();
+  PittyAudioService(this._audioHandler) {
+    _player = _audioHandler.player;
     _initializeAudioSession().ignore();
   }
 
@@ -26,7 +27,7 @@ class AudioService {
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.music());
     } catch (e) {
-      // Silently fail if audio session configuration fails
+      print('Error configuring audio session: $e');
     }
   }
 
@@ -91,27 +92,14 @@ class AudioService {
       ),
     ];
 
-    // Carregar duração de cada música
-    for (var track in hardcodedTracks) {
-      try {
-        await _player.setAsset(track.path);
-        final duration = _player.duration ?? Duration.zero;
-        _tracks.add(Track(
-          path: track.path,
-          title: track.title,
-          duration: duration,
-          imageAsset: track.imageAsset,
-        ));
-      } catch (e) {
-        _tracks.add(track);
-      }
-    }
-
+    _tracks.addAll(hardcodedTracks);
     _tracks.sort((a, b) => a.title.compareTo(b.title));
+
+    // Initialize lock screen handler with playlist
+    await _audioHandler.initializePlaylist(_tracks);
 
     if (_tracks.isNotEmpty && _currentTrack == null) {
       _currentTrack = _tracks.first;
-      await _player.setAsset(_currentTrack!.path);
     }
     _tracksLoaded = true;
   }
@@ -119,8 +107,17 @@ class AudioService {
   Future<void> play(Track track) async {
     try {
       _currentTrack = track;
-      await _player.setAsset(track.path);
+      print('→ Playing: ${track.title}');
+      print('  - Artist: Pitty');
+
+      final trackIndex = _tracks.indexOf(track);
+      if (trackIndex != -1) {
+        await _player.seek(Duration.zero, index: trackIndex);
+      }
+
       await _player.play();
+      print('✓ Audio started playing');
+
       _setupRepeatListener();
     } catch (e) {
       rethrow;
@@ -167,6 +164,8 @@ class AudioService {
       final currentIndex = _tracks.indexOf(_currentTrack!);
       if (currentIndex != -1 && currentIndex < _tracks.length - 1) {
         await play(_tracks[currentIndex + 1]);
+      } else if (currentIndex == _tracks.length - 1 && _repeatMode == 2) {
+        await play(_tracks.first);
       }
     }
   }

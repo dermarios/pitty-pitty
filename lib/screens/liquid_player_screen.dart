@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../models/track.dart';
-import '../services/audio_service.dart';
+import '../services/audio_service.dart' as pitty_audio;
 import 'artist_screen.dart';
 
 /// Tela "Tocando agora" — conceito Liquid Glass.
@@ -182,7 +182,7 @@ class VeuFundo extends StatelessWidget {
 }
 
 class LiquidPlayerScreen extends StatefulWidget {
-  final AudioService audioService;
+  final pitty_audio.PittyAudioService audioService;
   final VoidCallback? onNavigateToSide;
   final VoidCallback? onNavigateToArtist;
 
