@@ -21,7 +21,7 @@ class Track {
       title: title,
       artist: 'Pitty',
       duration: duration,
-      artUri: null,
+      artUri: imageAsset != null ? Uri.file(imageAsset!) : null,
     );
   }
 

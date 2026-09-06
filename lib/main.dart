@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:audio_service/audio_service.dart' as audio_service;
 import 'services/audio_service.dart';
+import 'services/background_audio_handler.dart';
+import 'services/ios_lock_screen_handler.dart';
 import 'screens/liquid_player_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/artist_screen.dart';
+
+Future<void> _audioServiceEntrypoint() async {
+  audio_service.AudioServiceBackground.run(() async {
+    return BackgroundAudioHandler();
+  });
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +23,16 @@ void main() async {
     androidNotificationChannelName: 'Pitty Player',
     androidNotificationOngoing: true,
   );
+
+  await audio_service.AudioService.init(
+    builder: () => BackgroundAudioHandler(),
+    config: const audio_service.AudioServiceConfig(
+      androidResumeOnClick: true,
+      androidStopForegroundOnPause: true,
+      notificationColor: 0xFF667eea,
+    ),
+  );
+
   runApp(const MyApp());
 }
 
@@ -54,6 +73,8 @@ class _HomeWithSwipeState extends State<HomeWithSwipe> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 1);
+    // Initialize iOS lock screen handler for control center and lock screen buttons
+    IosLockScreenHandler.initialize(widget.audioService);
   }
 
   @override

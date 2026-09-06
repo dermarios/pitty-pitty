@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
+import 'dart:async';
 
 // Global instance for easy access
 late BackgroundAudioHandler _globalHandler;
@@ -11,10 +12,29 @@ class BackgroundAudioHandler extends BaseAudioHandler {
   Future<void> Function()? onNext;
   Future<void> Function()? onPrevious;
   Future<void> Function(Duration position)? onSeek;
+  Future<void> Function()? onStop;
+
+  String? _lastArtworkPath;
+  static const String _tempArtworkName = 'lock_screen_artwork.tmp';
 
   BackgroundAudioHandler() {
     _globalHandler = this;
     mediaItem.add(null);
+    playbackState.add(
+      PlaybackState(
+        controls: const [
+          MediaControl.skipToPrevious,
+          MediaControl.play,
+          MediaControl.skipToNext,
+        ],
+        systemActions: const {MediaAction.seek},
+        processingState: AudioProcessingState.idle,
+        playing: false,
+        updatePosition: Duration.zero,
+        bufferedPosition: Duration.zero,
+        speed: 1.0,
+      ),
+    );
   }
 
   static BackgroundAudioHandler get instance => _globalHandler;
@@ -44,9 +64,18 @@ class BackgroundAudioHandler extends BaseAudioHandler {
       final tempDir = Directory.systemTemp;
       final extension = assetPath.split('.').last;
       final tempFile = File(
-        '${tempDir.path}/artwork_${DateTime.now().millisecondsSinceEpoch}.$extension',
+        '${tempDir.path}/$_tempArtworkName.$extension',
       );
+
+      // Remove old artwork se existir
+      if (_lastArtworkPath != null && _lastArtworkPath != tempFile.path) {
+        try {
+          await File(_lastArtworkPath!).delete();
+        } catch (_) {}
+      }
+
       await tempFile.writeAsBytes(uint8list);
+      _lastArtworkPath = tempFile.path;
 
       return tempFile.path;
     } catch (e) {
@@ -62,6 +91,7 @@ class BackgroundAudioHandler extends BaseAudioHandler {
     required String album,
     required Duration duration,
     String? artworkAssetPath,
+    Duration? elapsedTime,
   }) async {
     try {
       final artUri = artworkAssetPath != null
@@ -78,6 +108,11 @@ class BackgroundAudioHandler extends BaseAudioHandler {
       );
 
       mediaItem.add(item);
+
+      // Atualizar posição se provided
+      if (elapsedTime != null) {
+        updateElapsedTime(elapsedTime);
+      }
     } catch (e) {
       print('Error updating now playing: $e');
     }
@@ -85,6 +120,14 @@ class BackgroundAudioHandler extends BaseAudioHandler {
 
   void clearNowPlaying() {
     mediaItem.add(null);
+    _lastArtworkPath = null;
+  }
+
+  void updateElapsedTime(Duration elapsedTime) {
+    final state = playbackState.value;
+    playbackState.add(
+      state.copyWith(updatePosition: elapsedTime),
+    );
   }
 
   void updatePlaybackState({
@@ -121,8 +164,10 @@ class BackgroundAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> stop() async {
+    await onStop?.call();
     playbackState.add(_playbackState(playing: false));
     mediaItem.add(null);
+    _lastArtworkPath = null;
   }
 
   PlaybackState _playbackState({required bool playing}) {

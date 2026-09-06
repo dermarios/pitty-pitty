@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import '../models/track.dart';
+import 'background_audio_handler.dart';
 
 class AudioService {
   late AudioPlayer _player;
@@ -12,12 +13,29 @@ class AudioService {
   int _repeatMode = 0; // 0: no repeat, 1: repeat one, 2: repeat all
   bool _shuffleMode = false;
   StreamSubscription<PlayerState>? _repeatListener;
-  Set<String> _likedTracks = {}; // Store track paths of liked tracks
+  StreamSubscription<Duration>? _positionListener;
+  Set<String> _likedTracks = {};
   final _random = math.Random();
 
   AudioService() {
     _player = AudioPlayer();
     _initializeAudioSession().ignore();
+    _setupPlayerListeners();
+  }
+
+  void _setupPlayerListeners() {
+    // Listener para mudanças de estado do player
+    _player.playerStateStream.listen((state) {
+      _updateBackgroundHandler();
+    });
+
+    // Listener para mudanças de posição (atualiza lock screen)
+    _positionListener?.cancel();
+    _positionListener = _player.positionStream.listen((position) {
+      if (_currentTrack != null) {
+        BackgroundAudioHandler.instance.updateElapsedTime(position);
+      }
+    });
   }
 
   Future<void> _initializeAudioSession() async {
@@ -33,8 +51,50 @@ class AudioService {
         androidWillPauseWhenDucked: true,
       ));
     } catch (e) {
-      // Silently fail if audio session configuration fails
+      print('Error configuring audio session: $e');
     }
+  }
+
+  Future<void> _updateBackgroundHandler() async {
+    if (_currentTrack == null) return;
+
+    try {
+      // Atualizar metadados e artwork na tela bloqueada
+      await BackgroundAudioHandler.instance.updateNowPlaying(
+        id: _currentTrack!.path,
+        title: _currentTrack!.title,
+        artist: 'Pitty',
+        album: 'Pitty Player',
+        duration: _currentTrack!.duration,
+        artworkAssetPath: _currentTrack!.imageAsset,
+        elapsedTime: _player.position,
+      );
+
+      // Atualizar estado de playback
+      final playerState = _player.playerState;
+      BackgroundAudioHandler.instance.updatePlaybackState(
+        playing: playerState.playing,
+        processingState: playerState.processingState,
+        position: _player.position,
+        bufferedPosition: _player.bufferedPosition,
+        speed: _player.speed,
+      );
+
+      // Registrar callbacks se ainda não foram registrados
+      _registerBackgroundCallbacks();
+    } catch (e) {
+      print('Error updating background handler: $e');
+    }
+  }
+
+  void _registerBackgroundCallbacks() {
+    BackgroundAudioHandler.instance.setCallbacks(
+      play: play,
+      pause: pause,
+      next: next,
+      previous: previous,
+      seek: seekTo,
+    );
   }
 
   Future<void> loadTracks() async {
@@ -98,22 +158,8 @@ class AudioService {
       ),
     ];
 
-    // Carregar duração de cada música
-    for (var track in hardcodedTracks) {
-      try {
-        await _player.setAsset(track.path);
-        final duration = _player.duration ?? Duration.zero;
-        _tracks.add(Track(
-          path: track.path,
-          title: track.title,
-          duration: duration,
-          imageAsset: track.imageAsset,
-        ));
-      } catch (e) {
-        _tracks.add(track);
-      }
-    }
-
+    // Adicionar tracks sem bloquear no carregamento de duração
+    _tracks.addAll(hardcodedTracks);
     _tracks.sort((a, b) => a.title.compareTo(b.title));
 
     if (_tracks.isNotEmpty && _currentTrack == null) {
@@ -135,6 +181,9 @@ class AudioService {
       print('✓ Audio started playing');
 
       _setupRepeatListener();
+
+      // Atualizar lock screen
+      await _updateBackgroundHandler();
     } catch (e) {
       rethrow;
     }
@@ -161,15 +210,18 @@ class AudioService {
 
   Future<void> pause() async {
     await _player.pause();
+    await _updateBackgroundHandler();
   }
 
   Future<void> resume() async {
     await _activateAudioSession();
     await _player.play();
+    await _updateBackgroundHandler();
   }
 
   Future<void> seekTo(Duration position) async {
     await _player.seek(position);
+    await _updateBackgroundHandler();
   }
 
   Future<void> next() async {
@@ -185,6 +237,7 @@ class AudioService {
         await play(_tracks.first);
       }
     }
+    await _updateBackgroundHandler();
   }
 
   Future<void> previous() async {
@@ -193,6 +246,7 @@ class AudioService {
     if (currentIndex > 0) {
       await play(_tracks[currentIndex - 1]);
     }
+    await _updateBackgroundHandler();
   }
 
   AudioPlayer get player => _player;
@@ -226,6 +280,8 @@ class AudioService {
 
   void dispose() {
     _repeatListener?.cancel();
+    _positionListener?.cancel();
+    BackgroundAudioHandler.instance.clearNowPlaying();
     _player.dispose();
   }
 

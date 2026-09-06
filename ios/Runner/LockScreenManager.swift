@@ -57,7 +57,8 @@ class LockScreenManager {
     title: String,
     artist: String,
     duration: Double,
-    imageData: Data? = nil
+    imageData: Data? = nil,
+    elapsedTime: Double = 0
   ) {
     var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
 
@@ -69,7 +70,11 @@ class LockScreenManager {
       nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
     }
 
-    nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0
+    // Manter tempo anterior se não foi fornecido
+    if elapsedTime > 0 || !nowPlayingInfo.keys.contains(MPNowPlayingInfoPropertyElapsedPlaybackTime) {
+      nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedTime
+    }
+
     nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
 
     if let imageData = imageData, let image = UIImage(data: imageData) {
