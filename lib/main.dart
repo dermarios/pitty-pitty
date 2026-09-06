@@ -19,7 +19,7 @@ void main() async {
     androidNotificationOngoing: true,
   );
 
-  audioHandler = await AudioService.init(
+  await AudioService.init(
     builder: () => LockScreenAudioHandler(),
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.forven.pittyplayer.channel.audio',
@@ -27,6 +27,8 @@ void main() async {
       androidNotificationOngoing: true,
     ),
   );
+
+  audioHandler = AudioService.handler as LockScreenAudioHandler;
 
   runApp(const MyApp());
 }
